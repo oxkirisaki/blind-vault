@@ -29,6 +29,15 @@ This is architecturally impossible without PERs.
 4. Approve condition → ephemeral state reveals for 1.5s → auto-settle
 5. 250 USDC paid out, PER session destroyed
 
+## Run locally
+
+git clone https://github.com/oxkirisaki/blind-vault.git
+cd blind-vault
+npm install
+npm run dev
+
+Open http://localhost:5173
+
 ## Stack
 
 React + TypeScript + Vite · Web Crypto API · MagicBlock PER SDK (devnet)
