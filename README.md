@@ -1,73 +1,50 @@
-# React + TypeScript + Vite
+# Blind Vault
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Privacy escrow primitive built on MagicBlock Private Ephemeral Rollups (PERs).
 
-Currently, two official plugins are available:
+## What it does
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Conditional payments where individual amounts are sealed inside a PER session
+and never touch Solana L1. An on-chain observer can verify a vault exists and
+its deadline — but cannot reconstruct who paid what.
 
-## React Compiler
+## Why PERs are essential
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Standard Solana programs expose all state on-chain. PERs provide ephemeral
+state that is private, verifiable, and auto-destroyed after settlement.
+This is architecturally impossible without PERs.
 
-## Expanding the ESLint configuration
+## Privacy guarantees
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Amount per payer: sealed in PER, never on L1
+- Noise injection: dummy transactions mask timing patterns
+- Trustless settlement: auto-executes on condition approval or deadline
+- attack_feasible: false
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Demo flow
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+1. Three wallets commit amounts (sealed as hashes inside PER session)
+2. Noise transactions injected — observer cannot distinguish real vs fake
+3. Click "Simulate Chain Analysis Attack" → ATTACK FAILED
+4. Approve condition → ephemeral state reveals for 1.5s → auto-settle
+5. 250 USDC paid out, PER session destroyed
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Stack
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+React + TypeScript + Vite · Web Crypto API · MagicBlock PER SDK (devnet)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Known edge cases (production roadmap)
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- **Overcollateralization**: if total commits exceed target, excess is
+  returned via pro-rata refund to each payer automatically
+- **Partial fill**: configurable minimum threshold — vault can be set to
+  settle at 80% of target, or strict 100% only
+- **Timeout with partial commits**: if deadline passes and target not met,
+  all committed amounts refund trustlessly via timelock
+- **Collusion resistance**: vault creator has zero special privileges —
+  cannot abort, redirect funds, or access sealed amounts before reveal
+
+## Production roadmap
+
+Abstract into single SDK call: `BlindVault.create(condition, deadline)`
+so any developer can add privacy-preserving escrow in 10 lines of code.
